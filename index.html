@@ -1,0 +1,91 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Kain Log</title>
+  <meta name="description" content="Personal meal logger with weekly summaries and AI tips for balanced eating.">
+  <meta name="theme-color" content="#2f7d4f">
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="icon" href="icons/icon.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="icons/icon-192.png">
+  <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+  <header class="topbar">
+    <h1 id="screen-title">Today</h1>
+    <span id="online-dot" class="online-dot" title="Online status"></span>
+  </header>
+
+  <div id="banner" class="banner" hidden></div>
+
+  <main id="view" class="view"></main>
+
+  <nav class="tabbar" aria-label="Main">
+    <button data-tab="today" class="active"><span class="ic">🍽️</span>Today</button>
+    <button data-tab="week"><span class="ic">📊</span>Week</button>
+    <button data-tab="ask"><span class="ic">💬</span>Ask</button>
+    <button data-tab="settings"><span class="ic">⚙️</span>Settings</button>
+  </nav>
+
+  <dialog id="meal-dialog" class="sheet">
+    <form id="meal-form" method="dialog">
+      <div class="sheet-head">
+        <h2 id="meal-dialog-title">Add meal</h2>
+        <button type="button" class="icon-btn" data-close aria-label="Close">✕</button>
+      </div>
+
+      <label class="field">
+        <span>Meal</span>
+        <select name="mealType" id="f-mealType"></select>
+      </label>
+
+      <div id="fav-chips" class="chips"></div>
+
+      <label class="field">
+        <span>What did you eat?</span>
+        <textarea name="text" id="f-text" rows="2" placeholder="e.g. tapsilog + kape na may asukal"></textarea>
+      </label>
+
+      <div class="field">
+        <span>Portion (rough is OK)</span>
+        <div class="seg" id="f-size">
+          <label><input type="radio" name="size" value="small"><span>Small</span></label>
+          <label><input type="radio" name="size" value="regular" checked><span>Regular</span></label>
+          <label><input type="radio" name="size" value="large"><span>Large</span></label>
+        </div>
+        <input name="portion" id="f-portion" placeholder="Optional details: 1 cup rice, 2 pcs pandesal">
+      </div>
+
+      <div class="photo-row">
+        <label class="btn secondary">
+          📷 Photo
+          <input type="file" id="f-photo" accept="image/*" capture="environment" hidden>
+        </label>
+        <img id="f-photo-preview" class="thumb" alt="" hidden>
+        <button type="button" id="f-photo-clear" class="link-btn" hidden>Remove photo</button>
+      </div>
+
+      <label class="field">
+        <span>Time</span>
+        <input type="time" name="time" id="f-time">
+      </label>
+
+      <label class="check">
+        <input type="checkbox" id="f-fav"> Save to quick-pick
+      </label>
+
+      <p class="hint" id="f-hint">The AI will estimate food groups and calories after saving.</p>
+
+      <div class="sheet-actions">
+        <button type="button" id="f-delete" class="btn danger" hidden>Delete</button>
+        <button type="submit" class="btn primary" id="f-save">Save</button>
+      </div>
+    </form>
+  </dialog>
+
+  <div id="toast" class="toast" role="status" aria-live="polite"></div>
+
+  <script type="module" src="js/app.js"></script>
+</body>
+</html>
