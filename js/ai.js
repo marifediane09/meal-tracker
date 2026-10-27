@@ -1,9 +1,9 @@
 // Google Gemini API, called straight from the phone. The key never leaves this device
 // except in requests to Google.
-import { setting } from './db.js';
+import { setting, saveSetting } from './db.js';
 
 const API = 'https://generativelanguage.googleapis.com/v1beta';
-export const DEFAULT_MODEL = 'gemini-2.5-flash';
+export const DEFAULT_MODEL = 'gemini-3.8-flash';
 
 const PERSONA = `Ikaw si "Kain Coach", a friendly Filipino nutrition buddy inside a personal meal log app.
 Always reply in natural, casual Taglish (mix of Tagalog and English, the way Filipinos text).
@@ -13,6 +13,7 @@ Suggest affordable, easy-to-find Filipino foods and simple swaps (e.g. brown ric
 Portions are rough because the user has no food scale, so treat calories as estimates and never shame. You are not a doctor; for medical conditions, suggest consulting a professional.`;
 
 export class AIError extends Error {}
+class ModelGoneError extends AIError {}
 
 async function config() {
   const key = (await setting('apiKey')) || '';
@@ -38,7 +39,7 @@ async function request(path, key, body) {
     const msg = data.error?.message || res.statusText;
     if (res.status === 429) throw new AIError('Naabot na ang free limit for now. Try again in a bit (or bukas). ' + msg);
     if (res.status === 400 && /API key/i.test(msg)) throw new AIError('Mukhang mali ang API key. Check it in Settings.');
-    if (res.status === 404) throw new AIError('Model not found. Pick another model in Settings. ' + msg);
+    if (res.status === 404) throw new ModelGoneError('Model not found. Pick another model in Settings. ' + msg);
     throw new AIError(`Gemini error (${res.status}): ${msg}`);
   }
   return data;
@@ -51,11 +52,20 @@ async function generate({ system, contents, schema, temperature = 0.6 }) {
     generationConfig.responseMimeType = 'application/json';
     generationConfig.responseSchema = schema;
   }
-  const data = await request(`models/${encodeURIComponent(model)}:generateContent`, key, {
-    systemInstruction: { parts: [{ text: system }] },
-    contents,
-    generationConfig,
-  });
+  const body = { systemInstruction: { parts: [{ text: system }] }, contents, generationConfig };
+  let data;
+  try {
+    data = await request(`models/${encodeURIComponent(model)}:generateContent`, key, body);
+  } catch (err) {
+    // Google retires models over time; switch to the newest flash model and retry once.
+    if (!(err instanceof ModelGoneError)) throw err;
+    const list = await listModels(key);
+    const next = pickModel(list.filter((m) => m !== model));
+    if (!next) throw err;
+    await saveSetting('models', list);
+    await saveSetting('model', next);
+    data = await request(`models/${encodeURIComponent(next)}:generateContent`, key, body);
+  }
   const parts = data.candidates?.[0]?.content?.parts || [];
   const text = parts.filter((p) => !p.thought && p.text).map((p) => p.text).join('');
   if (!text) {
@@ -178,4 +188,13 @@ export async function listModels(key) {
     .map((m) => m.name.replace(/^models\//, ''))
     .filter((n) => n.startsWith('gemini') && !/embed|image|tts|audio|live|veo|imagen|robotics|computer/i.test(n))
     .sort((a, b) => (b.includes('flash') - a.includes('flash')) || b.localeCompare(a));
+}
+
+// Prefers a stable "gemini-X.Y-flash" with the highest version, then any non-lite flash model.
+export function pickModel(list) {
+  const version = (n) => parseFloat(n.match(/^gemini-(\d+(?:\.\d+)?)/)?.[1] || 0);
+  const byVersion = (a, b) => version(b) - version(a);
+  const stable = list.filter((n) => /^gemini-\d+(\.\d+)?-flash$/.test(n)).sort(byVersion);
+  const flash = list.filter((n) => n.includes('flash') && !/lite/.test(n)).sort(byVersion);
+  return stable[0] || flash[0] || list[0] || null;
 }

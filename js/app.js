@@ -4,7 +4,7 @@ import {
   MEAL_TYPES, mealType, today, addDays, weekStart, nowTime, fmtDay, weekStats, mealLines, calorieTarget,
 } from './stats.js';
 
-const APP_VERSION = '1.0.0';
+const APP_VERSION = '1.0.1';
 const BACKUP_REMINDER_DAYS = 14;
 
 const $ = (sel, root = document) => root.querySelector(sel);
@@ -510,7 +510,7 @@ async function renderSettings() {
     try {
       const list = await ai.listModels($('#api-key').value.trim());
       await db.saveSetting('models', list);
-      const cur = $('#model').value;
+      const cur = list.includes($('#model').value) ? $('#model').value : ai.pickModel(list) || $('#model').value;
       $('#model').innerHTML = [...new Set([cur, ...list])].map((m) => opt(m, m, cur)).join('');
       toast(`${list.length} models found.`);
     } catch (err) {
