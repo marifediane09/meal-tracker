@@ -1,6 +1,6 @@
 // Caches the app shell so the app opens and logs meals offline.
 // Bump CACHE whenever any file below changes so phones pick up the update.
-const CACHE = 'kain-log-v2';
+const CACHE = 'kain-log-v3';
 const SHELL = [
   './',
   'index.html',
@@ -17,7 +17,8 @@ const SHELL = [
 ];
 
 self.addEventListener('install', (e) => {
-  e.waitUntil(caches.open(CACHE).then((c) => c.addAll(SHELL)));
+  // cache: 'reload' skips the browser's HTTP cache so a new version never caches old files.
+  e.waitUntil(caches.open(CACHE).then((c) => c.addAll(SHELL.map((url) => new Request(url, { cache: 'reload' })))));
 });
 
 self.addEventListener('activate', (e) => {
