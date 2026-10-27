@@ -1,6 +1,6 @@
 // Caches the app shell so the app opens and logs meals offline.
 // Bump CACHE whenever any file below changes so phones pick up the update.
-const CACHE = 'kain-log-v1';
+const CACHE = 'kain-log-v2';
 const SHELL = [
   './',
   'index.html',
