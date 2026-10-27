@@ -4,7 +4,7 @@ import {
   MEAL_TYPES, mealType, today, addDays, weekStart, nowTime, fmtDay, weekStats, mealLines, calorieTarget,
 } from './stats.js';
 
-const APP_VERSION = '1.0.1';
+const APP_VERSION = '1.0.2';
 const BACKUP_REMINDER_DAYS = 14;
 
 const $ = (sel, root = document) => root.querySelector(sel);
@@ -668,6 +668,8 @@ document.addEventListener('click', async (e) => {
     state.tab = d.goto;
     render();
   } else if (d.update !== undefined) {
+    t.disabled = true;
+    t.textContent = 'Updating…';
     state.waitingWorker?.postMessage('skipWaiting');
   } else if (d.edit) {
     openMealDialog({ meal: await db.get('meals', d.edit) });
@@ -730,6 +732,17 @@ if ('serviceWorker' in navigator) {
   });
 }
 
+// Confirms an update after the reload. Installs from before v1.0.2 never saved a
+// version, so a page already controlled by the service worker counts as an update.
+async function announceUpdate() {
+  const last = await db.setting('appVersion');
+  if (last !== APP_VERSION) {
+    if (last || navigator.serviceWorker?.controller) toast(`✅ Updated na! Kain Log v${APP_VERSION}`, 5000);
+    await db.saveSetting('appVersion', APP_VERSION);
+  }
+}
+
 updateOnline();
 render();
+announceUpdate();
 estimatePending();
